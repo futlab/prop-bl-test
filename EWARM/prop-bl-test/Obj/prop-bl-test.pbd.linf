@@ -1,4 +1,5 @@
 ﻿D:\src\stm32\prop-bl-test\EWARM\prop-bl-test\Obj\prop-bl-test.pbd
+D:\src\stm32\prop-bl-test\EWARM\prop-bl-test\Obj\hx711.pbi
 D:\src\stm32\prop-bl-test\EWARM\prop-bl-test\Obj\main.pbi
 D:\src\stm32\prop-bl-test\EWARM\prop-bl-test\Obj\stm32f1xx_hal.pbi
 D:\src\stm32\prop-bl-test\EWARM\prop-bl-test\Obj\stm32f1xx_hal_adc.pbi
@@ -9,13 +10,14 @@ D:\src\stm32\prop-bl-test\EWARM\prop-bl-test\Obj\stm32f1xx_hal_flash.pbi
 D:\src\stm32\prop-bl-test\EWARM\prop-bl-test\Obj\stm32f1xx_hal_flash_ex.pbi
 D:\src\stm32\prop-bl-test\EWARM\prop-bl-test\Obj\stm32f1xx_hal_gpio.pbi
 D:\src\stm32\prop-bl-test\EWARM\prop-bl-test\Obj\stm32f1xx_hal_gpio_ex.pbi
-D:\src\stm32\prop-bl-test\EWARM\prop-bl-test\Obj\stm32f1xx_hal_i2c.pbi
 D:\src\stm32\prop-bl-test\EWARM\prop-bl-test\Obj\stm32f1xx_hal_msp.pbi
 D:\src\stm32\prop-bl-test\EWARM\prop-bl-test\Obj\stm32f1xx_hal_pcd.pbi
 D:\src\stm32\prop-bl-test\EWARM\prop-bl-test\Obj\stm32f1xx_hal_pcd_ex.pbi
 D:\src\stm32\prop-bl-test\EWARM\prop-bl-test\Obj\stm32f1xx_hal_pwr.pbi
 D:\src\stm32\prop-bl-test\EWARM\prop-bl-test\Obj\stm32f1xx_hal_rcc.pbi
 D:\src\stm32\prop-bl-test\EWARM\prop-bl-test\Obj\stm32f1xx_hal_rcc_ex.pbi
+D:\src\stm32\prop-bl-test\EWARM\prop-bl-test\Obj\stm32f1xx_hal_spi.pbi
+D:\src\stm32\prop-bl-test\EWARM\prop-bl-test\Obj\stm32f1xx_hal_spi_ex.pbi
 D:\src\stm32\prop-bl-test\EWARM\prop-bl-test\Obj\stm32f1xx_hal_tim.pbi
 D:\src\stm32\prop-bl-test\EWARM\prop-bl-test\Obj\stm32f1xx_hal_tim_ex.pbi
 D:\src\stm32\prop-bl-test\EWARM\prop-bl-test\Obj\stm32f1xx_it.pbi

@@ -59,15 +59,18 @@
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
-I2C_HandleTypeDef hi2c1;
+SPI_HandleTypeDef hspi1;
+DMA_HandleTypeDef hdma_spi1_rx;
 
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
 uint16_t adcData[8];
+uint8_t hx711data[8];
 
 /* USER CODE END PV */
 
@@ -76,9 +79,10 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
-static void MX_I2C1_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_SPI1_Init(void);
+static void MX_TIM3_Init(void);
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
                                 
@@ -90,27 +94,35 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 /* USER CODE BEGIN 0 */
 
+struct Stage {
+    uint32_t out; // us
+    uint32_t delay; // ms
+    //uint32_t 
+} program[8] = {0}, *pc = program;
+
+uint32_t printState = 0;
+uint32_t enabled = 0;
+uint32_t printOk = 0;
+//bool printMeasures
+
 void runCmd(uint8_t cmd, uint32_t *val)
 {
-  char buf[128];
-  switch(cmd) {
-  case '?':
-    {
-      uint32_t l = sprintf(buf, "out:%d cnt:%d, adc: ", TIM1->CCR1, TIM1->CNT);
-      char *o = buf + l;
-      for (int i = 0; i < 8; ++i)
-        o += sprintf(o, "%d ", adcData[i]);
-      *(o++) = '\r';
-      CDC_Transmit_FS(buf, o - buf);
-      break;
-    }
-  case 'o':
-
-    TIM1->CCR1 = val[0];
-    //out = val[0];
-    
-    CDC_Transmit_FS("OK\r", 3);
-    break;
+    char buf[128];
+    switch(cmd) {
+    case '?':
+        printState = 1;
+        break;
+    case 'o':
+        TIM1->CCR1 = val[0];
+        printOk = 1;
+        break;
+  case 'p':
+      {
+          uint32_t v = pollHX711();
+          uint32_t l = sprintf(buf, "cr1:%2x, cnt:%d\r", v, TIM3->CNT);
+          CDC_Transmit_FS(buf, l);
+          break;
+      }
   case 'e':
     HAL_TIM_Base_Start(&htim1); 
     HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_1);//     t->CR1 |= TIM_CR1_CEN;
@@ -119,6 +131,9 @@ void runCmd(uint8_t cmd, uint32_t *val)
   }
 }
 
+uint32_t ff[8];
+
+    
 /* USER CODE END 0 */
 
 /**
@@ -152,19 +167,64 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_ADC1_Init();
-  MX_I2C1_Init();
   MX_TIM1_Init();
-  MX_TIM2_Init();
+  //MX_TIM2_Init();
   MX_USB_DEVICE_Init();
+  //MX_SPI1_Init();
+  //MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
+  //SPI1->CR1 |= SPI_CR1_SPE;
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*) &adcData, sizeof(adcData) / sizeof(*adcData));
+  GPIOB->CRL &= ~(1 << 15); // PB3 - GP out
+  GPIOB->BRR = 1 << 3; // PB3 = 0
+  SPI1->CR1 &= ~SPI_CR1_CPOL;
+  //TIM2->SMCR = 0;
+  initHX711();
+  //HAL_TIM_Base_Start_IT(&htim3);
+  //TIM3->CR1 &= ~TIM_CR1_CEN;
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-    HAL_Delay(100);
+    char buf[64];
+    uint64_t forceSum = 0;
+    uint32_t forceCount = 0;
+    uint32_t stateDumpPeriod = 100, stateDumpNext = 0;
+    while (1)
+    {
+        /*uint32_t f = pollHX711();
+        if (f) {
+            ff[forceCount] = f;
+            forceSum += f;
+            forceCount++;
+            if (forceCount == 3) {
+                disableHX711();
+                while(1);
+            }
+            //size_t l = sprintf(buf, "f:%d\r", w);
+            //CDC_Transmit_FS(buf, l);
+        }*/
+        uint32_t ticks = HAL_GetTick();
+        if (printState || ticks > stateDumpNext) {
+            uint32_t l = sprintf(buf, "pbl out:%d f:%d adc: ", TIM1->CCR1, readAverageForce());
+            char *o = buf + l;
+            for (int i = 0; i < 8; ++i)
+                o += sprintf(o, "%d ", adcData[i]);
+            *(o++) = '\r';
+            CDC_Transmit_FS(buf, o - buf);
+            if (stateDumpPeriod)
+                stateDumpNext = ticks + stateDumpPeriod;
+            printState = 0;
+            forceSum = 0;
+            forceCount = 0;
+        }
+        if (printOk) {
+            CDC_Transmit_FS("OK\r", 3);
+            printOk = 0;
+        }
+        
+ 
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
@@ -292,20 +352,24 @@ static void MX_ADC1_Init(void)
 
 }
 
-/* I2C1 init function */
-static void MX_I2C1_Init(void)
+/* SPI1 init function */
+static void MX_SPI1_Init(void)
 {
 
-  hi2c1.Instance = I2C1;
-  hi2c1.Init.ClockSpeed = 100000;
-  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
-  hi2c1.Init.OwnAddress1 = 0;
-  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c1.Init.OwnAddress2 = 0;
-  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  /* SPI1 parameter configuration*/
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES_RXONLY;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 10;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
@@ -415,6 +479,54 @@ static void MX_TIM2_Init(void)
 
 }
 
+/* TIM3 init function */
+static void MX_TIM3_Init(void)
+{
+
+  TIM_ClockConfigTypeDef sClockSourceConfig;
+  TIM_MasterConfigTypeDef sMasterConfig;
+  TIM_OC_InitTypeDef sConfigOC;
+
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 64;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 100;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  if (HAL_TIM_OC_Init(&htim3) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sConfigOC.OCMode = TIM_OCMODE_ACTIVE;
+  sConfigOC.Pulse = 50;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_OC_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+}
+
 /** 
   * Enable DMA controller clock
   */
@@ -427,6 +539,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+  /* DMA1_Channel2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
 
 }
 

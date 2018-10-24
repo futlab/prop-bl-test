@@ -300,13 +300,14 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
     case '?':
     case 'e':
     case 'l':
+    case 'p':
       cmd = *c; break;
     }
     else if (*c >= '0' && *c <= '9')
       val[valIdx] = val[valIdx] * 10 + (*c - '0');
     else if (*c == ' ' || *c == ',')
       valIdx++;
-    else if (*c == 13) {
+    else if (*c == 13 || *c == 10) {
       runCmd(cmd, val);
       cmd = 0;
       valIdx = 0;

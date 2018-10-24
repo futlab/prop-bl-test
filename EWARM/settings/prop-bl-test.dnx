@@ -1,15 +1,15 @@
 <?xml version="1.0"?>
 <settings>
     <StLinkDriver>
-        <stlinkResetStyle>0</stlinkResetStyle>
-        <stlinkResetStrategy>3</stlinkResetStrategy>
         <CStepIntDis>_ 0</CStepIntDis>
         <LeaveTargetRunning>_ 0</LeaveTargetRunning>
+        <stlinkResetStyle>0</stlinkResetStyle>
+        <stlinkResetStrategy>3</stlinkResetStrategy>
         <stlinkserialNo>37061987</stlinkserialNo>
         <stlinkfoundProbes />
     </StLinkDriver>
     <DebugChecksum>
-        <Checksum>1162982111</Checksum>
+        <Checksum>4206478660</Checksum>
     </DebugChecksum>
     <Exceptions>
         <StopOnUncaught>_ 0</StopOnUncaught>
@@ -54,6 +54,26 @@
         <ITMportsLogFile>0</ITMportsLogFile>
         <ITMlogFile>$PROJ_DIR$\ITM.log</ITMlogFile>
     </SWOTraceHWSettings>
+    <struct_types>
+        <Fmt0>AFIO_TypeDef-MAPR	4	0</Fmt0>
+        <Fmt1>DMA_Channel_TypeDef-CCR	4	0</Fmt1>
+        <Fmt2>RCC_TypeDef-AHBENR	1	0</Fmt2>
+        <Fmt3>RCC_TypeDef-APB1ENR	4	0</Fmt3>
+        <Fmt4>RCC_TypeDef-APB2ENR	1	0</Fmt4>
+        <Fmt5>SPI_TypeDef-CR1	4	0</Fmt5>
+        <Fmt6>TIM_TypeDef-CCMR1	1	0</Fmt6>
+        <Fmt7>TIM_TypeDef-CR1	1	0</Fmt7>
+        <Fmt8>TIM_TypeDef-CR2	1	0</Fmt8>
+        <Fmt9>TIM_TypeDef-SR	4	0</Fmt9>
+    </struct_types>
+    <array_types>
+        <Fmt0>int[64]	4	0</Fmt0>
+        <Fmt1>uint32_t[8]	4	0</Fmt1>
+        <Fmt2>uint8_t[4]	4	0</Fmt2>
+    </array_types>
+    <watch_formats>
+        <Fmt0>{W}1:cf	4	0</Fmt0>
+    </watch_formats>
     <Trace2>
         <Enabled>0</Enabled>
         <ShowSource>0</ShowSource>
@@ -99,11 +119,21 @@
         <ShowTimeSum>1</ShowTimeSum>
         <SumSortOrder>0</SumSortOrder>
     </EventLog>
+    <DisassembleMode>
+        <mode>0</mode>
+    </DisassembleMode>
+    <Breakpoints2>
+        <Count>0</Count>
+    </Breakpoints2>
     <LogFile>
         <LoggingEnabled>_ 0</LoggingEnabled>
         <LogFile>_ ""</LogFile>
         <Category>_ 0</Category>
     </LogFile>
+    <Aliases>
+        <Count>0</Count>
+        <SuppressDialog>0</SuppressDialog>
+    </Aliases>
     <DriverProfiling>
         <Enabled>0</Enabled>
         <Mode>3</Mode>
@@ -117,16 +147,6 @@
     <CallStackStripe>
         <ShowTiming>1</ShowTiming>
     </CallStackStripe>
-    <DisassembleMode>
-        <mode>0</mode>
-    </DisassembleMode>
-    <Breakpoints2>
-        <Count>0</Count>
-    </Breakpoints2>
-    <Aliases>
-        <Count>0</Count>
-        <SuppressDialog>0</SuppressDialog>
-    </Aliases>
     <TermIOLog>
         <LoggingEnabled>_ 0</LoggingEnabled>
         <LogFile>_ ""</LogFile>

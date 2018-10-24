@@ -1,0 +1,5 @@
+EWARM/*/Exe/
+EWARM/*/Obj/
+EWARM/*/List/
+*.o
+*.pbi
