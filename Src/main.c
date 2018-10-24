@@ -256,13 +256,15 @@ int main(void)
         uint32_t ticks = HAL_GetTick();
         if (printState || ticks > stateDumpNext) {
             const uint32_t *adc = readAdcAverage();
+            float voltage = (adc[0] - 3400) * 0.000867085f;
             
             float force = (-130000 - readAverageForce()) * 0.00121951f;
                 
-            uint32_t l = sprintf(buf, "pbl ts:%d out:%d f:%.2f adc: ", 
+            uint32_t l = sprintf(buf, "pbl ts:%d out:%d f:%.2f v:%.3f adc: ", 
                                  HAL_GetTick(), 
                                  TIM1->CCR1, 
-                                 force
+                                 force,
+                                 voltage
                                  );
             char *o = buf + l;
             for (int i = 0; i < 4; ++i)
