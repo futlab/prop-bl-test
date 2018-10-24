@@ -69,8 +69,12 @@ TIM_HandleTypeDef htim3;
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
-uint16_t adcData[8];
-uint8_t hx711data[8];
+#define ADC_SIZE 128
+uint16_t adcData[ADC_SIZE];
+volatile uint32_t adcSum[4] = {0};
+volatile uint32_t adcCount = 0;
+uint32_t adcLast[4] = {0};
+volatile uint32_t adcUpdated = 0;
 
 /* USER CODE END PV */
 
@@ -131,9 +135,63 @@ void runCmd(uint8_t cmd, uint32_t *val)
   }
 }
 
-uint32_t ff[8];
+void sumAdc(const uint16_t *data)
+{
+    uint32_t sum[4] = {0};
+    for (const uint16_t *end = data + ADC_SIZE / 2; data < end; data += 4) {
+        sum[0] += data[0];
+        sum[1] += data[1];
+        sum[2] += data[2];
+        sum[3] += data[3];        
+    }
+    adcSum[0] += sum[0];
+    adcSum[1] += sum[1];
+    adcSum[2] += sum[2];
+    adcSum[3] += sum[3];
+    adcCount += ADC_SIZE / 2 / 4;
+    adcUpdated = 1;
+}
 
-    
+const uint32_t *readAdcAverage()
+{
+    uint32_t sum[4], count;
+    do { // read
+        adcUpdated = 0;
+        sum[0] = adcSum[0];
+        sum[1] = adcSum[1];
+        sum[2] = adcSum[2];
+        sum[3] = adcSum[3];
+        count = adcCount;
+    } while (adcUpdated);
+    do { // clear
+        adcUpdated = 0;
+        adcSum[0] = 0;
+        adcSum[1] = 0;
+        adcSum[2] = 0;
+        adcSum[3] = 0;
+        adcCount = 0;
+    } while (adcUpdated);
+    if (count) {
+        adcLast[0] = (sum[0] << 4) / count;
+        adcLast[1] = (sum[1] << 4) / count;
+        adcLast[2] = (sum[2] << 4) / count;
+        adcLast[3] = (sum[3] << 4) / count;
+    }
+    return adcLast;
+}
+
+void DMA1_Channel1_IRQHandler(void)
+{
+    if (DMA1->ISR & DMA_ISR_HTIF1) {
+        sumAdc(adcData);
+        DMA1->IFCR = DMA_IFCR_CHTIF1;
+    }
+    if (DMA1->ISR & DMA_ISR_TCIF1) {
+        sumAdc(adcData + ADC_SIZE / 2);
+        DMA1->IFCR = DMA_IFCR_CTCIF1;        
+    }
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -174,7 +232,9 @@ int main(void)
   //MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   //SPI1->CR1 |= SPI_CR1_SPE;
-  HAL_ADC_Start_DMA(&hadc1, (uint32_t*) &adcData, sizeof(adcData) / sizeof(*adcData));
+    HAL_ADC_Start_DMA(&hadc1, (uint32_t*) &adcData, sizeof(adcData) / sizeof(*adcData));
+    DMA1_Channel1->CCR |= DMA_CCR_TCIE | DMA_CCR_HTIE;
+    
   GPIOB->CRL &= ~(1 << 15); // PB3 - GP out
   GPIOB->BRR = 1 << 3; // PB3 = 0
   SPI1->CR1 &= ~SPI_CR1_CPOL;
@@ -190,23 +250,13 @@ int main(void)
     char buf[64];
     uint64_t forceSum = 0;
     uint32_t forceCount = 0;
-    uint32_t stateDumpPeriod = 100, stateDumpNext = 0;
+    uint32_t stateDumpPeriod = 200, stateDumpNext = 0;
     while (1)
     {
-        /*uint32_t f = pollHX711();
-        if (f) {
-            ff[forceCount] = f;
-            forceSum += f;
-            forceCount++;
-            if (forceCount == 3) {
-                disableHX711();
-                while(1);
-            }
-            //size_t l = sprintf(buf, "f:%d\r", w);
-            //CDC_Transmit_FS(buf, l);
-        }*/
         uint32_t ticks = HAL_GetTick();
         if (printState || ticks > stateDumpNext) {
+            const uint32_t *adc = readAdcAverage();
+            
             float force = (-130000 - readAverageForce()) * 0.00121951f;
                 
             uint32_t l = sprintf(buf, "pbl ts:%d out:%d f:%.2f adc: ", 
@@ -215,8 +265,8 @@ int main(void)
                                  force
                                  );
             char *o = buf + l;
-            for (int i = 0; i < 8; ++i)
-                o += sprintf(o, "%d ", adcData[i]);
+            for (int i = 0; i < 4; ++i)
+                o += sprintf(o, "%d ", adc[i]);
             *(o++) = '\r';
             CDC_Transmit_FS(buf, o - buf);
             if (stateDumpPeriod)
