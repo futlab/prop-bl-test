@@ -207,7 +207,13 @@ int main(void)
         }*/
         uint32_t ticks = HAL_GetTick();
         if (printState || ticks > stateDumpNext) {
-            uint32_t l = sprintf(buf, "pbl out:%d f:%d adc: ", TIM1->CCR1, readAverageForce());
+            float force = (-130000 - readAverageForce()) * 0.00121951f;
+                
+            uint32_t l = sprintf(buf, "pbl ts:%d out:%d f:%.2f adc: ", 
+                                 HAL_GetTick(), 
+                                 TIM1->CCR1, 
+                                 force
+                                 );
             char *o = buf + l;
             for (int i = 0; i < 8; ++i)
                 o += sprintf(o, "%d ", adcData[i]);
