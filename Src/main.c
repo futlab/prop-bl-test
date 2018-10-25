@@ -70,10 +70,10 @@ TIM_HandleTypeDef htim3;
 /* Private variables ---------------------------------------------------------*/
 
 #define ADC_SIZE 128
-uint16_t adcData[ADC_SIZE];
-volatile uint32_t adcSum[4] = {0};
-volatile uint32_t adcCount = 0;
-uint32_t adcLast[4] = {0};
+int16_t adcData[ADC_SIZE];
+volatile int32_t adcSum[4] = {0};
+volatile int32_t adcCount = 0;
+int32_t adcLast[4] = {0};
 volatile uint32_t adcUpdated = 0;
 
 /* USER CODE END PV */
@@ -135,10 +135,10 @@ void runCmd(uint8_t cmd, uint32_t *val)
   }
 }
 
-void sumAdc(const uint16_t *data)
+void sumAdc(const int16_t *data)
 {
-    uint32_t sum[4] = {0};
-    for (const uint16_t *end = data + ADC_SIZE / 2; data < end; data += 4) {
+    int32_t sum[4] = {0};
+    for (const int16_t *end = data + ADC_SIZE / 2; data < end; data += 4) {
         sum[0] += data[0];
         sum[1] += data[1];
         sum[2] += data[2];
@@ -152,7 +152,7 @@ void sumAdc(const uint16_t *data)
     adcUpdated = 1;
 }
 
-const uint32_t *readAdcAverage()
+const int32_t *readAdcAverage()
 {
     uint32_t sum[4], count;
     do { // read
@@ -250,21 +250,23 @@ int main(void)
     char buf[64];
     uint64_t forceSum = 0;
     uint32_t forceCount = 0;
-    uint32_t stateDumpPeriod = 200, stateDumpNext = 0;
+    uint32_t stateDumpPeriod = 100, stateDumpNext = 0;
     while (1)
     {
         uint32_t ticks = HAL_GetTick();
         if (printState || ticks > stateDumpNext) {
-            const uint32_t *adc = readAdcAverage();
+            const int32_t *adc = readAdcAverage();
             float voltage = (adc[0] - 3400) * 0.000867085f;
+            float current = (adc[1] - 31300) * 0.0040862944f;
             
             float force = (-130000 - readAverageForce()) * 0.00121951f;
                 
-            uint32_t l = sprintf(buf, "pbl ts:%d out:%d f:%.2f v:%.3f adc: ", 
+            uint32_t l = sprintf(buf, "pbl ts:%d out:%d f:%.2f v:%.3f i:%.3f adc: ", 
                                  HAL_GetTick(), 
                                  TIM1->CCR1, 
                                  force,
-                                 voltage
+                                 voltage,
+                                 current
                                  );
             char *o = buf + l;
             for (int i = 0; i < 4; ++i)
