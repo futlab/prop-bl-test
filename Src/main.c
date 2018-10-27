@@ -192,6 +192,9 @@ void DMA1_Channel1_IRQHandler(void)
     }
 }
 
+uint32_t getRateSensorInc();
+
+
 /* USER CODE END 0 */
 
 /**
@@ -240,6 +243,7 @@ int main(void)
   SPI1->CR1 &= ~SPI_CR1_CPOL;
   //TIM2->SMCR = 0;
   initHX711();
+  initRateSensor();
   //HAL_TIM_Base_Start_IT(&htim3);
   //TIM3->CR1 &= ~TIM_CR1_CEN;
 
@@ -251,22 +255,27 @@ int main(void)
     uint64_t forceSum = 0;
     uint32_t forceCount = 0;
     uint32_t stateDumpPeriod = 100, stateDumpNext = 0;
+    uint32_t lastTicks = 0;
     while (1)
     {
         uint32_t ticks = HAL_GetTick();
         if (printState || ticks > stateDumpNext) {
+            uint32_t ri = getRateSensorInc();
             const int32_t *adc = readAdcAverage();
+            float rate = (float)(250 * ri) / (ticks - lastTicks);
+            lastTicks = ticks;
             float voltage = (adc[0] - 3400) * 0.000867085f;
             float current = (adc[1] - 31300) * 0.0040862944f;
             
             float force = (-130000 - readAverageForce()) * 0.00121951f;
                 
-            uint32_t l = sprintf(buf, "pbl ts:%d out:%d f:%.2f v:%.3f i:%.3f adc: ", 
+            uint32_t l = sprintf(buf, "pbl ts:%d out:%d f:%.2f v:%.3f i:%.3f r:%.2f adc: ", 
                                  HAL_GetTick(), 
                                  TIM1->CCR1, 
                                  force,
                                  voltage,
-                                 current
+                                 current,
+                                 rate
                                  );
             char *o = buf + l;
             for (int i = 0; i < 4; ++i)
