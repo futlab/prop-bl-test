@@ -1052,6 +1052,9 @@
                 <name>$PROJ_DIR$\..\Src\main.c</name>
             </file>
             <file>
+                <name>$PROJ_DIR$\..\Src\rate_sensor.cpp</name>
+            </file>
+            <file>
                 <name>$PROJ_DIR$\..\Src\stm32f1xx_hal_msp.c</name>
             </file>
             <file>
