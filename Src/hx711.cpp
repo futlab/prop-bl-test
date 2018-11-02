@@ -15,9 +15,8 @@ struct Measure
 Queue<Measure<int32_t>, 64> queue;
 
 extern "C" {
-int32_t readAverageForce()
+int32_t readAverageForce(int32_t *result)
 {
-    int32_t last = 0;
     Measure<int32_t> m;
     int64_t sum = 0;
     size_t count = 0;
@@ -25,8 +24,10 @@ int32_t readAverageForce()
         sum += m.value;
         count++;
     }
-    last = count ? sum / count : last;
-    return last;
+    if (count) {
+        *result = sum / count;
+        return 1;
+    } else return 0;
 }
 }
 

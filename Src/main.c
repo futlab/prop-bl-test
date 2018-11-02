@@ -252,8 +252,6 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
     char buf[64];
-    uint64_t forceSum = 0;
-    uint32_t forceCount = 0;
     uint32_t stateDumpPeriod = 100, stateDumpNext = 0;
     uint32_t lastTicks = 0;
     while (1)
@@ -267,26 +265,29 @@ int main(void)
             float voltage = (adc[0] - 3400) * 0.000867085f;
             float current = (adc[1] - 31300) * 0.0040862944f;
             
-            float force = (-130000 - readAverageForce()) * 0.00121951f;
+            int32_t forceRaw;
+            int32_t haveForce = readAverageForce(&forceRaw);
                 
-            uint32_t l = sprintf(buf, "pbl ts:%d out:%d f:%.2f v:%.3f i:%.3f r:%.2f adc: ", 
+            uint32_t l = sprintf(buf, "pbl ts:%d out:%d v:%.3f i:%.3f r:%.2f", 
                                  HAL_GetTick(), 
                                  TIM1->CCR1, 
-                                 force,
                                  voltage,
                                  current,
                                  rate
                                  );
+            if (haveForce) {
+                float force = (-130000 - forceRaw) * 0.00121951f;
+                l += sprintf(buf + l, " f:%.2f", force);
+            }
+            
             char *o = buf + l;
             for (int i = 0; i < 4; ++i)
-                o += sprintf(o, "%d ", adc[i]);
+                o += sprintf(o, " %d", adc[i]);
             *(o++) = '\r';
             CDC_Transmit_FS(buf, o - buf);
             if (stateDumpPeriod)
                 stateDumpNext = ticks + stateDumpPeriod;
             printState = 0;
-            forceSum = 0;
-            forceCount = 0;
         }
         if (printOk) {
             CDC_Transmit_FS("OK\r", 3);
