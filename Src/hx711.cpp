@@ -12,15 +12,18 @@ struct Measure
     T value;
 };
 
-Queue<Measure<int32_t>, 64> queue;
+Queue<Measure<int32_t>, 64> queue[2];
+volatile uint32_t errorCount = 0;
+int lastIdx = 0;
+const int extras[] = {1, 2};
 
 extern "C" {
-int32_t readAverageForce(int32_t *result)
+int32_t readAverageForce(int32_t *result, int idx)
 {
     Measure<int32_t> m;
     int64_t sum = 0;
     size_t count = 0;
-    while(queue.pop(&m)) {
+    while(queue[idx].pop(&m)) {
         sum += m.value;
         count++;
     }
@@ -31,8 +34,6 @@ int32_t readAverageForce(int32_t *result)
 }
 }
 
-//char buf1[128], buf2[128];
-//TIM_TypeDef t3;
 RCC_TypeDef *rcc_ = RCC;
 AFIO_TypeDef *afio = AFIO;
 TIM_TypeDef *t3, *t2;
@@ -89,6 +90,10 @@ public:
         ClockTimer::template configure<Enable>();
         ClockTimer::update();        
     }
+    static inline void setExtra(int extra, int delay = 5)
+    {
+        GateTimer::top() = 23 + delay + extra;        
+    }
     void init(int extra = 1, int delay = 5)
     {
         dc = DMA1_Channel2;
@@ -114,9 +119,13 @@ public:
     {
         SPI::template configure<spi_::Slave<spi_::InternalSelect<false>>>();
         int32_t result = (int16_t(int8_t(data[0])) << 16) | (data[1] << 8) | data[2];
-        queue.push({HAL_GetTick(), result});
-        //if (queue.length() > 2)
-            //while(1);
+        if (result == 0) 
+            errorCount++;
+        else
+            queue[lastIdx].push({HAL_GetTick(), result});
+        lastIdx = 1 - lastIdx;
+        setExtra(extras[lastIdx]);
+
         DMA1_Channel2->CCR &= ~DMA_CCR_EN;
         DMA1_Channel2->CNDTR = 3;
         DMA1_Channel2->CCR |= DMA_CCR_EN;
@@ -144,8 +153,6 @@ CLOCKS clocks;
 typedef Timer<uintptr_t(TIM4), CLOCKS, &clocks> ClockTimer;
 typedef Timer<uintptr_t(TIM3), CLOCKS, &clocks> GateTimer;
 typedef Spi<uintptr_t(SPI1), CLOCKS, &clocks> SPI;
-
-//typedef Pin<uintptr_t(GPIOA), 6> A6;
 
 
 HX711<SPI, GateTimer, 2, ClockTimer, 1> hx;
@@ -175,23 +182,6 @@ void initHX711()
     SCKPin::template configure<IO_In>();
 
     hx.init();
-    /*using dma_::Enable;
-    configureDMA<
-        Link<SPI, Memory<uint8_t, data, 3>, Enable<true>>
-    >();*/
-    
-
-    //rd1 = SPI::blockingRead();
-    //rd2 = SPI::blockingRead();
-    //rd3 = SPI::blockingRead();
-    
-    
-    //A6::template configure<IO_AF0>();
-    //HAL_Delay(10);
-    /*while(MOSIPin::get());
-    //ClockPin::template configure<IO_Out>();
-    //ClockPin::clear();
-    hx.poll();*/
 }
 
 uint32_t pollHX711()

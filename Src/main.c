@@ -265,8 +265,9 @@ int main(void)
             float voltage = (adc[0] - 3400) * 0.000867085f;
             float current = (adc[1] - 31300) * 0.0040862944f;
             
-            int32_t forceRaw;
-            int32_t haveForce = readAverageForce(&forceRaw);
+            int32_t forceRaw, torqueRaw;
+            int32_t haveForce = readAverageForce(&forceRaw, 0);
+            int32_t haveTorque = readAverageForce(&torqueRaw, 1);
                 
             uint32_t l = sprintf(buf, "pbl ts:%d out:%d v:%.3f i:%.3f r:%.2f", 
                                  HAL_GetTick(), 
@@ -278,6 +279,10 @@ int main(void)
             if (haveForce) {
                 float force = (-130000 - forceRaw) * 0.00121951f;
                 l += sprintf(buf + l, " f:%.2f", force);
+            }
+            if (haveTorque) {
+                float torque = (-130000 - torqueRaw) * 0.00121951f;
+                l += sprintf(buf + l, " t:%.2f", torque);
             }
             
             char *o = buf + l;
