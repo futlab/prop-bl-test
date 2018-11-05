@@ -120,19 +120,22 @@ void runCmd(uint8_t cmd, uint32_t *val)
         TIM1->CCR1 = val[0];
         printOk = 1;
         break;
-  case 'p':
+    case 'p':
       {
           uint32_t v = pollHX711();
           uint32_t l = sprintf(buf, "cr1:%2x, cnt:%d\r", v, TIM3->CNT);
           CDC_Transmit_FS(buf, l);
           break;
       }
-  case 'e':
-    HAL_TIM_Base_Start(&htim1); 
-    HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_1);//     t->CR1 |= TIM_CR1_CEN;
-    CDC_Transmit_FS("OK\r", 3);
-    break;
-  }
+    case 's':
+        selectHX711source(val[0]);
+        break;
+    case 'e':
+        HAL_TIM_Base_Start(&htim1); 
+        HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_1);//     t->CR1 |= TIM_CR1_CEN;
+        CDC_Transmit_FS("OK\r", 3);
+        break;
+    }
 }
 
 void sumAdc(const int16_t *data)
@@ -277,8 +280,8 @@ int main(void)
                                  rate
                                  );
             if (haveForce) {
-                float force = (-130000 - forceRaw) * 0.00121951f;
-                l += sprintf(buf + l, " f:%.2f", force);
+                float force = (forceRaw - 1200) * 4.51671183E-6f;
+                l += sprintf(buf + l, " f:%.4f", force);
             }
             if (haveTorque) {
                 float torque = (-130000 - torqueRaw) * 0.00121951f;

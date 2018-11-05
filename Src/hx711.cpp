@@ -14,7 +14,8 @@ struct Measure
 
 Queue<Measure<int32_t>, 64> queue[2];
 volatile uint32_t errorCount = 0;
-int lastIdx = 0;
+volatile int lastIdx = 0;
+volatile int sourceIdx = 0;
 const int extras[] = {1, 2};
 
 extern "C" {
@@ -32,6 +33,12 @@ int32_t readAverageForce(int32_t *result, int idx)
         return 1;
     } else return 0;
 }
+
+void selectHX711source(int idx)
+{
+    sourceIdx = idx;
+}
+
 }
 
 RCC_TypeDef *rcc_ = RCC;
@@ -46,7 +53,6 @@ uint8_t data[4];
 typedef Pin<uintptr_t(GPIOB), 6> ClockPin;
 typedef Pin<uintptr_t(GPIOB), 5> MOSIPin;
 typedef Pin<uintptr_t(GPIOB), 3> SCKPin;
-
 
 template<class SPI, class GateTimer, int GateTriggerIdx, class ClockTimer, int clockTimerChannel>
 class HX711
@@ -123,7 +129,7 @@ public:
             errorCount++;
         else
             queue[lastIdx].push({HAL_GetTick(), result});
-        lastIdx = 1 - lastIdx;
+        lastIdx = sourceIdx;
         setExtra(extras[lastIdx]);
 
         DMA1_Channel2->CCR &= ~DMA_CCR_EN;

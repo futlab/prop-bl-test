@@ -301,6 +301,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
     case 'e':
     case 'l':
     case 'p':
+    case 's':
       cmd = *c; break;
     }
     else if (*c >= '0' && *c <= '9')
